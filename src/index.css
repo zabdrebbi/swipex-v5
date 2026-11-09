@@ -3,6 +3,8 @@
 @tailwind utilities;
 
 @layer base {
+  html { color-scheme: light; }
+  html.dark { color-scheme: dark; }
   html { font-family: 'Cairo Variable', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
   body { @apply bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100; margin: 0; }
 }

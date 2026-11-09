@@ -1,11 +1,13 @@
 import { NavLink } from 'react-router-dom';
+import { useI18n } from '@/i18n';
 import { NAV_MOBILE } from './nav';
 
-/** شريط سفلي للهاتف والأجهزة اللوحية الصغيرة فقط (أقل من lg). */
+/** Mobile-only bottom bar (below lg). */
 export default function BottomNav() {
+  const { t } = useI18n();
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-gray-200 bg-white pb-[env(safe-area-inset-bottom)] dark:border-gray-800 dark:bg-gray-900 lg:hidden">
-      {NAV_MOBILE.map(({ to, label, icon: Icon, end }) => (
+      {NAV_MOBILE.map(({ to, labelKey, icon: Icon, end }) => (
         <NavLink
           key={to}
           to={to}
@@ -17,7 +19,7 @@ export default function BottomNav() {
           }
         >
           <Icon className="size-5" aria-hidden="true" />
-          {label}
+          {t(labelKey)}
         </NavLink>
       ))}
     </nav>

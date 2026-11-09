@@ -1,13 +1,14 @@
 {
   "name": "swipex-v5",
   "private": true,
-  "version": "5.0.0-step1",
+  "version": "5.0.0-step2",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run check:i18n && tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:i18n": "node scripts/check-i18n.mjs"
   },
   "dependencies": {
     "@fontsource-variable/cairo": "^5.1.0",

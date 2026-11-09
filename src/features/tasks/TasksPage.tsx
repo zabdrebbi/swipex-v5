@@ -1,3 +1,6 @@
+import { useI18n } from '@/i18n';
+
 export default function TasksPage() {
-  return <h1 className="text-xl font-bold">المهام</h1>;
+  const { t } = useI18n();
+  return <h1 className="text-xl font-bold">{t('nav.tasks')}</h1>;
 }

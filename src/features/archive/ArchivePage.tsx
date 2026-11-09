@@ -1,3 +1,6 @@
+import { useI18n } from '@/i18n';
+
 export default function ArchivePage() {
-  return <h1 className="text-xl font-bold">الأرشيف</h1>;
+  const { t } = useI18n();
+  return <h1 className="text-xl font-bold">{t('nav.archive')}</h1>;
 }

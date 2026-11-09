@@ -3,9 +3,9 @@ import Sidebar from './Sidebar';
 import BottomNav from './BottomNav';
 
 /**
- * قشرة التطبيق:
- *  - هاتف (< 1024px): المحتوى + شريط سفلي (التصميم الحالي)
- *  - كمبيوتر (>= 1024px): قائمة جانبية ثابتة + محتوى بعرض مريح
+ * App shell:
+ *  - mobile (< 1024px): content + bottom bar (current design)
+ *  - desktop (>= 1024px): fixed sidebar + comfortable content width
  */
 export default function AppShell() {
   return (

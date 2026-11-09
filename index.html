@@ -5,6 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>SwiPex Pro</title>
+    <script>
+      // First-paint guard: apply saved language direction and theme before React renders (avoids a flash).
+      // The authoritative values live in src/i18n/locales/*.ts (meta.dir) and src/lib/theme.
+      (function () {
+        try {
+          var lang = localStorage.getItem('swipex_lang') || 'ar';
+          var root = document.documentElement;
+          root.lang = lang;
+          root.dir = ['ar', 'he', 'fa', 'ur'].indexOf(lang) !== -1 ? 'rtl' : 'ltr';
+          var mode = localStorage.getItem('swipex_theme') || 'system';
+          var dark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) root.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,3 +1,6 @@
+import { useI18n } from '@/i18n';
+
 export default function LoginPage() {
-  return <h1 className="text-xl font-bold">تسجيل الدخول</h1>;
+  const { t } = useI18n();
+  return <h1 className="text-xl font-bold">{t('auth.login_title')}</h1>;
 }
