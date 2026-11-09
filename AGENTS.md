@@ -5,7 +5,7 @@
 هذه إعادة بناء من الصفر لتطبيق قائم (مرجع للقراءة فقط: https://github.com/appswipexdz/swipex.v4 — Vue 3، لا تنسخ كوده، استعمله لفهم **شكل البيانات والسلوك** فقط عندما تطلب الخطوة ذلك).
 
 ## 2) التقنيات (ثابتة — لا تضف مكتبة خارجها دون إذني)
-- React 18 + Vite 5 + **TypeScript (strict)** + Tailwind CSS 3 + React Router 6
+- React 18 + Vite 5 + **TypeScript (strict)** + Tailwind CSS 3 + React Router 7 (النمط التصريحي BrowserRouter)
 - Firebase: Cloud Firestore (تحديث لحظي) + Authentication (Google وEmail/Password) + Cloud Messaging
 - الإشعارات: دوال Cloudflare (Pages Functions) فقط — `/api/send-push`
 - الاستضافة: Cloudflare Pages أو Workers Static Assets، والنشر تلقائي من GitHub
