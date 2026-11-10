@@ -1,6 +1,8 @@
 import { Monitor, Moon, Sun, type LucideIcon } from 'lucide-react';
 import { useI18n, type TranslationKey } from '@/i18n';
 import { useTheme, type ThemeMode } from '@/lib/theme';
+import { useUser } from '@/features/auth/AuthProvider';
+import SignOutButton from '@/components/SignOutButton';
 
 // TEMP: minimal language/theme pickers to verify step 2. Replaced by the real settings UI in step 11.
 
@@ -21,10 +23,19 @@ function segmentClass(active: boolean): string {
 export default function SettingsPage() {
   const { t, lang, languages, setLang, formatNumber, formatDate, formatCurrency } = useI18n();
   const { mode, setMode } = useTheme();
+  const user = useUser();
 
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-bold">{t('settings.title')}</h1>
+
+      <section>
+        <h2 className="mb-2 text-xs font-bold text-gray-500 dark:text-gray-400">{t('settings.account')}</h2>
+        <div className="space-y-3 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+          <p className="break-all text-sm" dir="ltr">{user.email ?? user.displayName}</p>
+          <SignOutButton />
+        </div>
+      </section>
 
       <section>
         <h2 className="mb-2 text-xs font-bold text-gray-500 dark:text-gray-400">{t('settings.language')}</h2>

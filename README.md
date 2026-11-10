@@ -2,7 +2,7 @@
 
 تطبيق ويب (PWA) لإدارة طرود التوصيل لعامل التوصيل الجزائري: استيراد ملصقات PDF، تتبع حالات الطرود، أرشيف يومي، مهام، وتواصل مع الزبائن. الواجهة عربية RTL أولاً، مع دعم لاحق للفرنسية والإنجليزية.
 
-الحالة الحالية: **الخطوة 2** — الهيكل والقشرة المتجاوبة + نظام الترجمة (ar/fr/en) + الثيم (بدون Firebase بعد).
+الحالة الحالية: **الخطوة 3** — الهيكل + الترجمة والثيم + Firebase والمصادقة وحماية المسارات.
 
 ## أوامر التشغيل
 
@@ -25,6 +25,39 @@ npm run preview      # معاينة نسخة البناء محلياً
 | Output directory | `dist` |
 
 **لماذا `single-page-application`؟** التطبيق SPA على React Router: كل المسارات (`/settings`، `/tasks`...) تُخدم من ملف `index.html` واحد. بدون هذا الإعداد، فتح رابط مباشر أو تحديث الصفحة على مسار غير الجذر يعيد خطأ 404 من الخادم. الإعداد الموجود في `wrangler.jsonc` (`assets.not_found_handling`) يعيد `index.html` لكل مسار غير موجود، فتعمل الروابط المباشرة والتحديث دون أخطاء.
+
+## إعداد Firebase
+
+الخطوات الأربع:
+
+1. أنشئ مشروعاً في [Firebase Console](https://console.firebase.google.com/).
+2. **Project settings → Your apps → أضف تطبيق ويب (Web)** ثم انسخ قيم الإعدادات.
+3. **Build → Authentication → Sign-in method**: فعّل **Email/Password** و**Google**.
+4. أنشئ `.env.local` في جذر المشروع انطلاقاً من `.env.example`، املأ المتغيرات، ثم **أعد تشغيل خادم التطوير** (Vite لا يقرأ `.env.local` بعد الإقلاع).
+
+أسماء المتغيرات (كلها مطلوبة عدا `VITE_FIREBASE_VAPID_KEY` الخاصة بالإشعارات في الخطوة 13):
+
+| المتغير | الملف الإعدادي |
+|---|---|
+| `VITE_FIREBASE_API_KEY` | Firebase → Project settings → General |
+| `VITE_FIREBASE_AUTH_DOMAIN` | » |
+| `VITE_FIREBASE_PROJECT_ID` | » |
+| `VITE_FIREBASE_STORAGE_BUCKET` | » |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | » |
+| `VITE_FIREBASE_APP_ID` | » |
+| `VITE_FIREBASE_VAPID_KEY` | Cloud Messaging → Web Push certificates (لاحقاً) |
+
+**بدون `.env.local`** يعرض التطبيق شاشة «إعدادات Firebase ناقصة» تسرد المتغيرات الناقصة بدل التطبيق كله — لا أخطاء في console. الملف `.env.local` **متجاهل في git** ولا يُرفع أبداً.
+
+نقطة الدخول الوحيدة: **`getFirebase()`** في `src/lib/firebase/index.ts` — لا تُنشئ `initializeApp` في مكان آخر. تُهيّئ Firestore بتخزين IndexedDB دائم متعدد التبويبات (يوفّر قراءات خطة Spark المجانية ويمكّن العمل دون اتصال).
+
+## تدفق الدخول والخروج
+
+- **الحماية:** مسارات التطبيق محاطة بـ `RequireAuth` (مسار تخطيط). غير المسجّل يُحوَّل إلى `/login` مع حفظ الوجهة في `state.from`، وشاشة الانتظار تمنع وميض المحتوى المحمي أثناء تحميل حالة المصادقة.
+- **الدخول:** Google عبر `signInWithPopup` (و`signInWithRedirect` احتياطاً عند حجب النافذة)، أو البريد وكلمة المرور (دخول/إنشاء/إعادة تعيين). لا حقل اسم ولا تحقق من البريد الآن.
+- **الوجهة بعد الدخول:** لا تُقبل إلا مساراً مطلقاً يبدأ بـ `/` ولا يبدأ بـ `//` (نظافة ضد Open Redirect).
+- **الخروج (`signOutAndWipe`):** `signOut` ← إنهاء كاش Firestore ومسحه من IndexedDB ← مسح مفاتيح `localStorage` التي تبدأ بـ `swipex:u:` ← إعادة تحميل كاملة على `/login`. **تفضيلات الجهاز (`swipex_lang`, `swipex_theme`) لا تُمسح**، وكذلك لا يُلمس أي كاش للـ Service Worker/ملف التطبيق (لا يحوي بيانات مستخدم).
+- **الإبقاء على الجلسة:** `onAuthStateChanged` يُبقي المستخدم مسجّلاً بعد تحديث الصفحة.
 
 ## بنية المشروع
 

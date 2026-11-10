@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useI18n } from '@/i18n';
 import { NAV_DESKTOP } from './nav';
+import UserMenu from './UserMenu';
 
 /** Desktop-only sidebar (lg and up). In RTL it sits on the right automatically. */
 export default function Sidebar() {
@@ -29,7 +30,10 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="mt-auto px-2 text-xs text-gray-400">v5</div>
+      <div className="mt-auto space-y-3">
+        <UserMenu />
+        <div className="px-2 text-xs text-gray-400">v5</div>
+      </div>
     </aside>
   );
 }
