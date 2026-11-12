@@ -50,6 +50,15 @@ const en: Locale = {
     'theme.dark': 'Dark',
     'theme.system': 'System',
     'currency.dzd': 'DA',
+    'status.no_action': 'No action',
+    'status.waiting': 'Waiting',
+    'status.delivered': 'Delivered',
+    'status.closed': 'Closed',
+    'status.no_answer': 'No answer',
+    'status.wrong_number': 'Wrong number',
+    'status.postponed': 'Postponed to tomorrow',
+    'status.cancelled': 'Order cancelled',
+    'status.unassigned': 'Unassigned',
   },
 };
 

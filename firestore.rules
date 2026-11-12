@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Every user owns exactly their own subtree; anything else is denied by default.
+    function isOwner() {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/settings/{document=**} {
+      allow read, write: if isOwner();
+    }
+
+    match /users/{userId}/parcels_v2/{tracking} {
+      allow read, write: if isOwner();
+    }
+
+    match /users/{userId}/archive_v2/{tracking} {
+      allow read, write: if isOwner();
+    }
+
+    match /users/{userId}/tasks/{taskId} {
+      allow read, write: if isOwner();
+    }
+
+    match /users/{userId}/_syncMeta/{deviceId} {
+      allow read, write: if isOwner();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
