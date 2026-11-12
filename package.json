@@ -1,7 +1,7 @@
 {
   "name": "swipex-v5",
   "private": true,
-  "version": "5.0.0-step6",
+  "version": "5.0.0-step7",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,6 +15,7 @@
     "@fontsource-variable/cairo": "^5.1.0",
     "firebase": "^13.2.0",
     "lucide-react": "^0.453.0",
+    "pdfjs-dist": "^4.10.38",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.18.5"

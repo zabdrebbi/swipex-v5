@@ -1,18 +1,21 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, Loader2, PackagePlus } from 'lucide-react';
+import { AlertTriangle, FileUp, Loader2, PackagePlus } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { useParcels } from '@/features/parcels/ParcelsProvider';
 import { useStatusDisplay } from '@/features/parcels/useStatusDisplay';
+import { useNewDayArchive } from '@/features/archive/useNewDayArchive';
 import ParcelCard from '@/features/parcels/ParcelCard';
 import AddParcelModal from '@/features/parcels/AddParcelModal';
 import EditParcelModal from '@/features/parcels/EditParcelModal';
 import StatusChangeModal from '@/features/parcels/StatusChangeModal';
+import ImportPdfModal from '@/features/import/ImportPdfModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import type { Parcel } from '@/domain/parcel/types';
 
 type ModalState =
   | { kind: 'add' }
+  | { kind: 'import' }
   | { kind: 'edit'; parcel: Parcel }
   | { kind: 'status'; parcel: Parcel }
   | { kind: 'delete'; parcel: Parcel }
@@ -24,6 +27,9 @@ export default function HomePage() {
   const { status, parcels, addParcel, updateParcel, removeParcels, changeStatus } = useParcels();
   const { statusLabel, statusColor } = useStatusDisplay();
   const [modal, setModal] = useState<ModalState>(null);
+
+  // A new calendar day archives yesterday's list before anything renders it.
+  useNewDayArchive();
 
   const municipalities = useMemo(() => {
     const set = new Set<string>();
@@ -54,7 +60,17 @@ export default function HomePage() {
 
   return (
     <div className="space-y-4 pb-24">
-      <h1 className="text-xl font-bold">{t('nav.home')}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">{t('nav.home')}</h1>
+        <button
+          type="button"
+          onClick={() => setModal({ kind: 'import' })}
+          className="flex min-h-11 items-center gap-2 rounded-xl border border-gray-300 px-3 text-sm font-bold hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
+        >
+          <FileUp className="size-4" aria-hidden="true" />
+          {t('import.title')}
+        </button>
+      </div>
 
       {parcels.length === 0 ? (
         <div className="flex min-h-[40vh] flex-col items-center justify-center gap-2 text-center">
@@ -86,6 +102,8 @@ export default function HomePage() {
       >
         <PackagePlus className="size-6" aria-hidden="true" />
       </button>
+
+      {modal?.kind === 'import' && <ImportPdfModal onClose={() => setModal(null)} />}
 
       {modal?.kind === 'add' && (
         <AddParcelModal

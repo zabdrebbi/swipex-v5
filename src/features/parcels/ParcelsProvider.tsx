@@ -22,6 +22,11 @@ interface ParcelsContextValue {
   parcels: Parcel[];
   addParcel: (parcel: Parcel) => void;
   /**
+   * Bulk insert (PDF import): one state update, sequential sort orders stacked
+   * on top of the current list in the given order, one debounced flush.
+   */
+  addParcels: (incoming: Parcel[]) => void;
+  /**
    * Partial update. When `patch.tracking` changes the identity, the parcel is
    * moved to a new document (upsert + immediate delete of the old one) because
    * the Firestore document id IS the tracking number.
@@ -140,6 +145,23 @@ export function ParcelsProvider({ children }: { children: ReactNode }) {
     [parcels, scheduleFlush],
   );
 
+  const addParcels = useCallback(
+    (incoming: Parcel[]) => {
+      if (incoming.length === 0) return;
+      // Stack the batch on top, keeping the incoming order: item 0 ends up
+      // first (lowest sortOrder of the batch), item N-1 just above the old list.
+      const base = nextSortOrder(parcels) - (incoming.length - 1);
+      const withOrders = incoming.map((parcel, index) => ({ ...parcel, sortOrder: base + index }));
+      for (const parcel of withOrders) {
+        localOnly.current.add(parcel.tracking);
+        pendingUpserts.current.set(parcel.tracking, parcel);
+      }
+      setParcels(sortParcels([...parcels, ...withOrders]));
+      scheduleFlush();
+    },
+    [parcels, scheduleFlush],
+  );
+
   const updateParcel = useCallback(
     (tracking: string, patch: Partial<Parcel>) => {
       const now = new Date().toISOString();
@@ -210,8 +232,8 @@ export function ParcelsProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<ParcelsContextValue>(
-    () => ({ status, parcels, addParcel, updateParcel, removeParcels, changeStatus, reorder }),
-    [status, parcels, addParcel, updateParcel, removeParcels, changeStatus, reorder],
+    () => ({ status, parcels, addParcel, addParcels, updateParcel, removeParcels, changeStatus, reorder }),
+    [status, parcels, addParcel, addParcels, updateParcel, removeParcels, changeStatus, reorder],
   );
 
   return <ParcelsContext.Provider value={value}>{children}</ParcelsContext.Provider>;
