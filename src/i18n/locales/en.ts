@@ -59,6 +59,16 @@ const en: Locale = {
     'status.postponed': 'Postponed to tomorrow',
     'status.cancelled': 'Order cancelled',
     'status.unassigned': 'Unassigned',
+    'settings.backup': 'Backup',
+    'settings.backup_export': 'Export settings (JSON file)',
+    'settings.backup_import': 'Import settings from a file',
+    'settings.backup_exported': 'Backup file downloaded',
+    'settings.backup_imported': 'Settings imported successfully',
+    'settings.backup_invalid': 'The file is not a valid settings backup',
+    'settings.backup_confirm': 'Your current settings will be replaced by the file contents. Continue?',
+    'settings.backup_import_pick': 'Choose a file',
+    'settings.load_error': 'Could not load settings from the cloud — saving temporarily disabled',
+    'settings.load_retry': 'Retry',
   },
 };
 

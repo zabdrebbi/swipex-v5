@@ -59,6 +59,16 @@ const fr: Locale = {
     'status.postponed': 'Reporté à demain',
     'status.cancelled': 'Commande annulée',
     'status.unassigned': 'Non assigné',
+    'settings.backup': 'Sauvegarde',
+    'settings.backup_export': 'Exporter les paramètres (JSON)',
+    'settings.backup_import': 'Importer les paramètres depuis un fichier',
+    'settings.backup_exported': 'Fichier de sauvegarde téléchargé',
+    'settings.backup_imported': 'Paramètres importés avec succès',
+    'settings.backup_invalid': 'Le fichier n’est pas une sauvegarde de paramètres valide',
+    'settings.backup_confirm': 'Vos paramètres actuels seront remplacés par le contenu du fichier. Confirmer ?',
+    'settings.backup_import_pick': 'Choisir un fichier',
+    'settings.load_error': 'Impossible de charger les paramètres depuis le cloud — enregistrement temporairement désactivé',
+    'settings.load_retry': 'Réessayer',
   },
 };
 
