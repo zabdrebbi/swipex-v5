@@ -1,7 +1,7 @@
 {
   "name": "swipex-v5",
   "private": true,
-  "version": "5.0.0-step5",
+  "version": "5.0.0-step6",
   "type": "module",
   "scripts": {
     "dev": "vite",

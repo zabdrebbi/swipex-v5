@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import FullScreenLoader from '@/components/FullScreenLoader';
+import { ParcelsProvider } from '@/features/parcels/ParcelsProvider';
 import { SettingsProvider } from '@/features/settings/SettingsProvider';
 import SettingsSync from '@/features/settings/SettingsSync';
 import { useAuth } from './AuthProvider';
@@ -16,7 +17,9 @@ export default function RequireAuth() {
   return (
     <SettingsProvider>
       <SettingsSync />
-      <Outlet />
+      <ParcelsProvider>
+        <Outlet />
+      </ParcelsProvider>
     </SettingsProvider>
   );
 }
