@@ -11,6 +11,8 @@ const byCode = new Map(locales.map((l) => [l.meta.code, l]));
 
 export const DEFAULT_LANG = 'ar';
 export const LANGUAGES = locales.map((l) => l.meta);
+/** Full locale objects (including strings): used to match status labels on import. */
+export const LOCALES: readonly Locale[] = locales;
 
 export function isSupported(code: string | null | undefined): code is string {
   return !!code && byCode.has(code);
