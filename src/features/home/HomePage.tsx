@@ -1,17 +1,28 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { AlertTriangle, FileSpreadsheet, FileUp, Loader2, PackagePlus } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { useParcels } from '@/features/parcels/ParcelsProvider';
 import { useStatusDisplay } from '@/features/parcels/useStatusDisplay';
 import { useNewDayArchive } from '@/features/archive/useNewDayArchive';
+import { useListFilters } from '@/features/parcels/useListFilters';
+import { useDragReorder } from '@/features/parcels/reorder/useDragReorder';
 import ParcelCard from '@/features/parcels/ParcelCard';
 import AddParcelModal from '@/features/parcels/AddParcelModal';
 import EditParcelModal from '@/features/parcels/EditParcelModal';
 import StatusChangeModal from '@/features/parcels/StatusChangeModal';
 import ImportModal from '@/features/import/ImportModal';
+import SearchBar from '@/features/parcels/SearchBar';
+import FilterBar from '@/features/parcels/FilterBar';
+import SwipeableCard from '@/features/parcels/swipe/SwipeableCard';
+import PhonePickDialog from '@/features/parcels/PhonePickDialog';
+import DailySummary from '@/features/home/DailySummary';
+import FocusMode from '@/features/focus/FocusMode';
 import { exportParcelsFile } from '@/lib/excel/sheetIo';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { computeDailySummary, sumAmount } from '@/domain/list/dailySummary';
+import { filterParcels, statusCounts, usedMunicipalities, usedTags, type FilterContext } from '@/domain/list/query';
+import { telLink, yalidineLink } from '@/domain/contact/links';
 import type { Parcel } from '@/domain/parcel/types';
 
 type ModalState =
@@ -28,19 +39,60 @@ type ExportState = 'idle' | 'working' | 'empty' | 'failed';
 export default function HomePage() {
   const { t } = useI18n();
   const { settings } = useSettings();
-  const { status, parcels, addParcel, updateParcel, removeParcels, changeStatus } = useParcels();
+  const { status, parcels, addParcel, updateParcel, removeParcels, changeStatus, reorder } = useParcels();
   const { statusLabel, statusColor } = useStatusDisplay();
   const [modal, setModal] = useState<ModalState>(null);
   const [exportState, setExportState] = useState<ExportState>('idle');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [focusOpen, setFocusOpen] = useState(false);
+  const [pickedPhones, setPickedPhones] = useState<string[] | null>(null);
+
+  const { filters, ...filterApi } = useListFilters();
 
   // A new calendar day archives yesterday's list before anything renders it.
   useNewDayArchive();
 
-  const municipalities = useMemo(() => {
-    const set = new Set<string>();
-    for (const p of parcels) if (p.municipality !== '') set.add(p.municipality);
-    return [...set].sort((a, b) => a.localeCompare(b, 'ar'));
-  }, [parcels]);
+  const favouritePhones = useMemo<ReadonlySet<string>>(
+    () => new Set(settings.favoritePhones.map((favourite) => favourite.phone)),
+    [settings.favoritePhones],
+  );
+  const filterCtx = useMemo<FilterContext>(() => ({ favouritePhones }), [favouritePhones]);
+
+  const filtered = useMemo(() => filterParcels(parcels, filters, filterCtx), [parcels, filters, filterCtx]);
+  const counts = useMemo(() => statusCounts(parcels, filters, filterCtx), [parcels, filters, filterCtx]);
+  const municipalities = useMemo(() => usedMunicipalities(parcels), [parcels]);
+  const tags = useMemo(() => {
+    const order = new Map<string, number>(settings.tagOrder.map((name, index) => [name, index]));
+    return usedTags(parcels).sort(
+      (a, b) => (order.get(a) ?? Number.MAX_SAFE_INTEGER) - (order.get(b) ?? Number.MAX_SAFE_INTEGER),
+    );
+  }, [parcels, settings.tagOrder]);
+  const summary = useMemo(() => computeDailySummary(parcels, settings.statusOrder), [parcels, settings.statusOrder]);
+  const visibleAmount = useMemo(() => sumAmount(filtered), [filtered]);
+
+  const { listRef, startDrag } = useDragReorder({
+    visibleTrackings: filtered.map((parcel) => parcel.tracking),
+    fullTrackings: parcels.map((parcel) => parcel.tracking),
+    onReorder: (tracking, toIndex) => reorder(tracking, toIndex),
+  });
+
+  const closeFocus = useCallback(() => setFocusOpen(false), []);
+  function findTracking(tracking: string) {
+    setFocusOpen(false);
+    setSearchOpen(true);
+    filterApi.setSearch(tracking);
+  }
+
+  function swipeToCall(parcel: Parcel) {
+    const phones = [parcel.phone, parcel.phone2].filter((phone): phone is string => !!phone);
+    if (phones.length > 1) setPickedPhones(phones);
+    else if (phones.length === 1) window.location.href = telLink(phones[0]);
+  }
+
+  function swipeToYalidine(parcel: Parcel) {
+    const url = yalidineLink(parcel.tracking);
+    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+  }
 
   const isTrackingFree = (tracking: string, except: string) =>
     !parcels.some((p) => p.tracking === tracking && p.tracking !== except);
@@ -124,20 +176,77 @@ export default function HomePage() {
           <p className="text-sm text-gray-500 dark:text-gray-400">{t('parcels.empty_body')}</p>
         </div>
       ) : (
-        <ul className="space-y-3">
-          {parcels.map((parcel) => (
-            <li key={parcel.tracking}>
-              <ParcelCard
-                parcel={parcel}
-                statusLabel={statusLabel}
-                statusColor={statusColor}
-                onOpenStatus={(p) => setModal({ kind: 'status', parcel: p })}
-                onEdit={(p) => setModal({ kind: 'edit', parcel: p })}
-                onDelete={(p) => setModal({ kind: 'delete', parcel: p })}
-              />
-            </li>
-          ))}
-        </ul>
+        <>
+          <DailySummary
+            summary={summary}
+            statusLabel={statusLabel}
+            statusColor={statusColor}
+            visibleCount={filtered.length}
+            visibleAmount={visibleAmount}
+            focusEnabled={filtered.length > 0}
+            onFocus={() => setFocusOpen(true)}
+          />
+
+          {/* Plain wrapper: the sticky bar must NOT carry the space-y margin
+              (an unpainted margin band would let the list show through above
+              it while stuck). Its own padding provides the visual gap. */}
+          <div>
+            <SearchBar
+              value={filters.search}
+              open={searchOpen}
+              onToggleOpen={() => setSearchOpen((value) => !value)}
+              onChange={filterApi.setSearch}
+            />
+
+            <FilterBar
+              filters={filters}
+              api={filterApi}
+              searchOpen={searchOpen}
+              counts={counts}
+              municipalities={municipalities}
+              tags={tags}
+              statusOrder={settings.statusOrder}
+              tagsEnabled={settings.tagsEnabled}
+              favoriteEnabled={settings.favoritePhonesEnabled && settings.favoritePhones.length > 0}
+              statusLabel={statusLabel}
+              statusColor={statusColor}
+            />
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="flex min-h-[30vh] flex-col items-center justify-center gap-3 text-center">
+              <p className="font-bold text-gray-600 dark:text-gray-300">{t('list.no_results')}</p>
+              <button
+                type="button"
+                onClick={filterApi.clearAll}
+                className="flex min-h-11 items-center rounded-xl border border-gray-300 px-4 text-sm font-bold hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
+              >
+                {t('list.clear_filters')}
+              </button>
+            </div>
+          ) : (
+            <ul ref={listRef} className="space-y-3">
+              {filtered.map((parcel) => (
+                <li key={parcel.tracking} data-tracking={parcel.tracking}>
+                  <SwipeableCard
+                    onSwipeRight={() => swipeToCall(parcel)}
+                    onSwipeLeft={() => swipeToYalidine(parcel)}
+                  >
+                    <ParcelCard
+                      parcel={parcel}
+                      statusLabel={statusLabel}
+                      statusColor={statusColor}
+                      onOpenStatus={(p) => setModal({ kind: 'status', parcel: p })}
+                      onEdit={(p) => setModal({ kind: 'edit', parcel: p })}
+                      onDelete={(p) => setModal({ kind: 'delete', parcel: p })}
+                      onReorderStart={startDrag}
+                    />
+                  </SwipeableCard>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
 
       <button
@@ -149,14 +258,31 @@ export default function HomePage() {
         <PackagePlus className="size-6" aria-hidden="true" />
       </button>
 
+      {pickedPhones && (
+        <PhonePickDialog
+          phones={pickedPhones}
+          onPick={(phone) => {
+            window.location.href = telLink(phone);
+            setPickedPhones(null);
+          }}
+          onClose={() => setPickedPhones(null)}
+        />
+      )}
+
+      {focusOpen && (
+        <FocusMode
+          parcels={filtered}
+          statusLabel={statusLabel}
+          statusColor={statusColor}
+          onExit={closeFocus}
+          onFindTracking={findTracking}
+        />
+      )}
+
       {modal?.kind === 'import' && <ImportModal onClose={() => setModal(null)} />}
 
       {modal?.kind === 'add' && (
-        <AddParcelModal
-          municipalities={municipalities}
-          onAdd={addParcel}
-          onClose={() => setModal(null)}
-        />
+        <AddParcelModal municipalities={municipalities} onAdd={addParcel} onClose={() => setModal(null)} />
       )}
 
       {modal?.kind === 'edit' && (

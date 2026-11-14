@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Check, Copy, Pencil, Phone, Trash2 } from 'lucide-react';
+import { useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { Check, Copy, GripVertical, Pencil, Phone, Trash2 } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import type { Parcel } from '@/domain/parcel/types';
 import type { StatusRef } from '@/domain/status/types';
@@ -13,6 +13,8 @@ interface ParcelCardProps {
   onOpenStatus: (parcel: Parcel) => void;
   onEdit: (parcel: Parcel) => void;
   onDelete: (parcel: Parcel) => void;
+  /** Drag-reorder handle wiring (step 9); omitted = handle hidden. */
+  onReorderStart?: (event: ReactPointerEvent<HTMLElement>, tracking: string) => void;
 }
 
 export default function ParcelCard({
@@ -22,6 +24,7 @@ export default function ParcelCard({
   onOpenStatus,
   onEdit,
   onDelete,
+  onReorderStart,
 }: ParcelCardProps) {
   const { t, formatCurrency } = useI18n();
   const [copied, setCopied] = useState(false);
@@ -85,23 +88,40 @@ export default function ParcelCard({
         </div>
       </div>
 
-      <div className="mt-3 flex justify-end gap-1 border-t border-gray-100 pt-2 dark:border-gray-800">
-        <button
-          type="button"
-          onClick={() => onEdit(parcel)}
-          aria-label={t('parcels.card.edit')}
-          className="flex size-11 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-        >
-          <Pencil className="size-4" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          onClick={() => onDelete(parcel)}
-          aria-label={t('parcels.card.delete')}
-          className="flex size-11 items-center justify-center rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
-        >
-          <Trash2 className="size-4" aria-hidden="true" />
-        </button>
+      <div className="mt-3 flex items-center gap-1 border-t border-gray-100 pt-2 dark:border-gray-800">
+        {onReorderStart && (
+          <button
+            type="button"
+            aria-label={t('reorder.handle')}
+            title={t('reorder.handle')}
+            // The swipe gesture must never claim a drag started on the handle.
+            onPointerDown={(event) => {
+              event.stopPropagation();
+              onReorderStart(event, parcel.tracking);
+            }}
+            className="flex size-11 touch-none items-center justify-center rounded-xl text-gray-400 hover:bg-gray-100 dark:text-gray-500 dark:hover:bg-gray-800"
+          >
+            <GripVertical className="size-4" aria-hidden="true" />
+          </button>
+        )}
+        <div className="ms-auto flex gap-1">
+          <button
+            type="button"
+            onClick={() => onEdit(parcel)}
+            aria-label={t('parcels.card.edit')}
+            className="flex size-11 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+          >
+            <Pencil className="size-4" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(parcel)}
+            aria-label={t('parcels.card.delete')}
+            className="flex size-11 items-center justify-center rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40"
+          >
+            <Trash2 className="size-4" aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       {showPieces && <MultiPieceModal parcel={parcel} onClose={() => setShowPieces(false)} />}
