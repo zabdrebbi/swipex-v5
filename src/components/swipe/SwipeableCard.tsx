@@ -17,6 +17,8 @@ interface SwipeableCardProps {
   /** Content revealed on the physical RIGHT edge (swipe left). Defaults to Yalidine. */
   rightReveal?: ReactNode;
   disabled?: boolean;
+  /** Swipe distance that triggers an action (px); defaults to 80. */
+  threshold?: number;
 }
 
 /**
@@ -31,9 +33,10 @@ export default function SwipeableCard({
   leftReveal,
   rightReveal,
   disabled = false,
+  threshold,
 }: SwipeableCardProps) {
   const { t } = useI18n();
-  const swipe = useCardSwipe({ onSwipeRight, onSwipeLeft, disabled });
+  const swipe = useCardSwipe({ onSwipeRight, onSwipeLeft, disabled, threshold });
 
   return (
     <div className="relative">

@@ -24,6 +24,17 @@ export interface Task {
 
 export const TASK_PRIORITIES: readonly TaskPriority[] = ['low', 'medium', 'high', 'urgent'];
 
+/** Composer input: what the user fills in (no id, status or timestamps). */
+export interface TaskDraft {
+  title: string;
+  description?: string;
+  priority: TaskPriority;
+  dueDate?: string;
+  dueTime?: string;
+  notes?: string;
+  tracking?: string;
+}
+
 /** Sort weight for display ordering (lower = more urgent = shown first). */
 export function priorityWeight(priority: TaskPriority): number {
   switch (priority) {

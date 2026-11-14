@@ -3,7 +3,7 @@ import { Check, ChevronLeft, ChevronRight, Globe, MessageCircle, MessageSquare, 
 import { useI18n } from '@/i18n';
 import { useSettings } from '@/features/settings/SettingsProvider';
 import { useParcels } from '@/features/parcels/ParcelsProvider';
-import SwipeableCard from '@/features/parcels/swipe/SwipeableCard';
+import SwipeableCard from '@/components/swipe/SwipeableCard';
 import PhonePickDialog from '@/features/parcels/PhonePickDialog';
 import { buildSmsMessage } from '@/domain/parcel/sms';
 import { smsLink, telLink, whatsappLink, yalidineLink } from '@/domain/contact/links';

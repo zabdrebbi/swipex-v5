@@ -7,11 +7,16 @@ const RESET_MS = 240;
 const SWALLOW_CLICK_MS = 200;
 
 export interface CardSwipeOptions {
-  /** Dragged right past the threshold (>= 80px): the call action (v4). */
+  /** Dragged right past the threshold: the primary action. */
   onSwipeRight: () => void;
-  /** Dragged left past the threshold (<= -80px): open Yalidine (v4). */
+  /** Dragged left past the threshold: the secondary action. */
   onSwipeLeft: () => void;
   disabled?: boolean;
+  /**
+   * Distance that triggers an action, in px (default 80 = v4 parcels).
+   * Task cards use 72 (v4 tasks).
+   */
+  threshold?: number;
 }
 
 interface SwipeState {
@@ -142,8 +147,9 @@ export function useCardSwipe(options: CardSwipeOptions) {
     st.dx = 0;
     release(true);
     if (cancelled || axis !== 'x') return;
-    if (dx >= THRESHOLD_PX) st.swiped = true;
-    else if (dx <= -THRESHOLD_PX) st.swiped = true;
+    const threshold = options.threshold ?? THRESHOLD_PX;
+    if (dx >= threshold) st.swiped = true;
+    else if (dx <= -threshold) st.swiped = true;
     else return;
     if (dx >= 0) options.onSwipeRight();
     else options.onSwipeLeft();

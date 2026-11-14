@@ -1,11 +1,15 @@
 import { NavLink } from 'react-router-dom';
 import { useI18n } from '@/i18n';
+import { useTasks } from '@/features/tasks/TasksProvider';
 import { NAV_DESKTOP } from './nav';
 import UserMenu from './UserMenu';
 
 /** Desktop-only sidebar (lg and up). In RTL it sits on the right automatically. */
 export default function Sidebar() {
   const { t } = useI18n();
+  const { counts } = useTasks();
+  const badge =
+    counts.pending > 0 ? (counts.pending > 99 ? '99+' : String(counts.pending)) : null;
   return (
     <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-e border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900 lg:flex">
       <div className="mb-6 px-2 text-xl font-extrabold text-indigo-600 dark:text-indigo-400">
@@ -27,6 +31,14 @@ export default function Sidebar() {
           >
             <Icon className="size-5" aria-hidden="true" />
             {t(labelKey)}
+            {to === '/tasks' && badge !== null && (
+              <span
+                dir="ltr"
+                className="ms-auto rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white"
+              >
+                {badge}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>

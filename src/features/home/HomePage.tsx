@@ -14,7 +14,7 @@ import StatusChangeModal from '@/features/parcels/StatusChangeModal';
 import ImportModal from '@/features/import/ImportModal';
 import SearchBar from '@/features/parcels/SearchBar';
 import FilterBar from '@/features/parcels/FilterBar';
-import SwipeableCard from '@/features/parcels/swipe/SwipeableCard';
+import SwipeableCard from '@/components/swipe/SwipeableCard';
 import PhonePickDialog from '@/features/parcels/PhonePickDialog';
 import DailySummary from '@/features/home/DailySummary';
 import FocusMode from '@/features/focus/FocusMode';
