@@ -144,3 +144,30 @@ export function usedTags(parcels: readonly Parcel[]): string[] {
   }
   return tags;
 }
+
+/**
+ * Trackings of the parcels actually carrying `tag`: the only documents that
+ * must be rewritten when that tag is deleted from settings (v4 cleared every
+ * parcel, which cost one write per parcel of the whole list).
+ */
+export function trackingsWithTag(parcels: readonly Parcel[], tag: string): string[] {
+  if (tag === '') return [];
+  return parcels.filter((parcel) => parcel.tag === tag).map((parcel) => parcel.tracking);
+}
+
+/**
+ * v4's smart tag sorting: a STABLE sort of the display list by the tag order
+ * (unknown and untagged parcels keep their relative order at the end). The
+ * stored `sortOrder` is untouched — this only shapes what the user sees.
+ */
+export function applySmartTagSorting(parcels: readonly Parcel[], tagOrder: readonly string[]): Parcel[] {
+  if (tagOrder.length === 0) return [...parcels];
+  const rank = new Map<string, number>();
+  tagOrder.forEach((tag, index) => {
+    if (tag !== '' && !rank.has(tag)) rank.set(tag, index);
+  });
+  const unknown = rank.size;
+  const rankOf = (parcel: Parcel): number =>
+    parcel.tag !== undefined && rank.has(parcel.tag) ? (rank.get(parcel.tag) ?? unknown) : unknown;
+  return [...parcels].sort((a, b) => rankOf(a) - rankOf(b));
+}

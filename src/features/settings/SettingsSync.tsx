@@ -24,11 +24,12 @@ function toDeviceTheme(mode: SettingsThemeMode): DeviceThemeMode {
 
 export default function SettingsSync() {
   const { status, settings, updateSettings } = useSettings();
-  const { lang, setLang } = useI18n();
+  const { lang, setLang, dirOverride, setDirOverride } = useI18n();
   const { mode, setMode } = useTheme();
 
   const lastLang = useRef(lang);
   const lastMode = useRef(mode);
+  const lastDir = useRef(dirOverride);
 
   useEffect(() => {
     if (status !== 'ready') return;
@@ -52,6 +53,18 @@ export default function SettingsSync() {
     }
     lastMode.current = mode;
   }, [mode, settings.themeMode, status, setMode, updateSettings]);
+
+  // Writing direction: settings.direction -> <html dir> (through i18n, the
+  // single writer) and back, exactly like the language bridge above.
+  useEffect(() => {
+    if (status !== 'ready') return;
+    if (dirOverride === lastDir.current) {
+      if (settings.direction !== dirOverride) setDirOverride(settings.direction);
+    } else if (settings.direction !== dirOverride) {
+      updateSettings({ direction: dirOverride });
+    }
+    lastDir.current = dirOverride;
+  }, [dirOverride, settings.direction, status, setDirOverride, updateSettings]);
 
   return null;
 }

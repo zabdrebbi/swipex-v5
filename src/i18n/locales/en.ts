@@ -1,4 +1,5 @@
 import type { Locale } from '../keys';
+import { settingsStrings } from './en.settings';
 
 const en: Locale = {
   meta: {
@@ -10,6 +11,7 @@ const en: Locale = {
     order: 3,
   },
   strings: {
+    ...settingsStrings,
     'nav.home': 'Home',
     'nav.tasks': 'Tasks',
     'nav.archive': 'Archive',

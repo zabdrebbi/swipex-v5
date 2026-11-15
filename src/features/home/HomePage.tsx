@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, FileSpreadsheet, FileUp, Loader2, PackagePlus } from 'lucide-react';
 import { useI18n } from '@/i18n';
 import { useSettings } from '@/features/settings/SettingsProvider';
@@ -21,9 +21,18 @@ import FocusMode from '@/features/focus/FocusMode';
 import { exportParcelsFile } from '@/lib/excel/sheetIo';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { computeDailySummary, sumAmount } from '@/domain/list/dailySummary';
-import { filterParcels, statusCounts, usedMunicipalities, usedTags, type FilterContext } from '@/domain/list/query';
+import {
+  applySmartTagSorting,
+  filterParcels,
+  statusCounts,
+  usedMunicipalities,
+  usedTags,
+  type FilterContext,
+} from '@/domain/list/query';
+import { duplicatePhoneCounts } from '@/domain/parcel/duplicates';
 import { telLink, yalidineLink } from '@/domain/contact/links';
 import type { Parcel } from '@/domain/parcel/types';
+import type { TagDef } from '@/domain/settings/types';
 
 type ModalState =
   | { kind: 'add' }
@@ -40,12 +49,14 @@ export default function HomePage() {
   const { t } = useI18n();
   const { settings } = useSettings();
   const { status, parcels, addParcel, updateParcel, removeParcels, changeStatus, reorder } = useParcels();
-  const { statusLabel, statusColor } = useStatusDisplay();
+  const { statusLabel, statusColor, statusIcon } = useStatusDisplay();
   const [modal, setModal] = useState<ModalState>(null);
   const [exportState, setExportState] = useState<ExportState>('idle');
   const [searchOpen, setSearchOpen] = useState(false);
   const [focusOpen, setFocusOpen] = useState(false);
   const [pickedPhones, setPickedPhones] = useState<string[] | null>(null);
+  /** Card to re-centre after a tag change moved it (card-tracking feature). */
+  const [trackedCard, setTrackedCard] = useState<string | null>(null);
 
   const { filters, ...filterApi } = useListFilters();
 
@@ -58,23 +69,77 @@ export default function HomePage() {
   );
   const filterCtx = useMemo<FilterContext>(() => ({ favouritePhones }), [favouritePhones]);
 
+  /** Tag definitions the UI may show: empty while the system is switched off. */
+  const activeTagDefs = useMemo<TagDef[]>(
+    () => (settings.tagsEnabled ? settings.tags : []),
+    [settings.tagsEnabled, settings.tags],
+  );
+  const activeTagByName = useMemo(
+    () => new Map(activeTagDefs.map((tag) => [tag.name, tag])),
+    [activeTagDefs],
+  );
+
   const filtered = useMemo(() => filterParcels(parcels, filters, filterCtx), [parcels, filters, filterCtx]);
+  /**
+   * What the list renders: the filtered set, grouped by tag order when the
+   * smart sorting is on (display-only; `sortOrder` in the cloud is untouched).
+   */
+  const visibleParcels = useMemo(
+    () =>
+      settings.smartTagSortingEnabled
+        ? applySmartTagSorting(filtered, settings.tagOrder)
+        : filtered,
+    [filtered, settings.smartTagSortingEnabled, settings.tagOrder],
+  );
   const counts = useMemo(() => statusCounts(parcels, filters, filterCtx), [parcels, filters, filterCtx]);
   const municipalities = useMemo(() => usedMunicipalities(parcels), [parcels]);
   const tags = useMemo(() => {
     const order = new Map<string, number>(settings.tagOrder.map((name, index) => [name, index]));
-    return usedTags(parcels).sort(
-      (a, b) => (order.get(a) ?? Number.MAX_SAFE_INTEGER) - (order.get(b) ?? Number.MAX_SAFE_INTEGER),
-    );
-  }, [parcels, settings.tagOrder]);
+    // Intersection: a tag deleted from settings disappears from the chips even
+    // if parcels still carry its (now hidden) name.
+    return usedTags(parcels)
+      .filter((name) => activeTagByName.has(name))
+      .sort(
+        (a, b) => (order.get(a) ?? Number.MAX_SAFE_INTEGER) - (order.get(b) ?? Number.MAX_SAFE_INTEGER),
+      );
+  }, [parcels, settings.tagOrder, activeTagByName]);
   const summary = useMemo(() => computeDailySummary(parcels, settings.statusOrder), [parcels, settings.statusOrder]);
   const visibleAmount = useMemo(() => sumAmount(filtered), [filtered]);
+  /** Phone-share counts for the red card badge (v4 duplicate alert). */
+  const duplicateCounts = useMemo(
+    () => (settings.showDuplicates ? duplicatePhoneCounts(parcels) : new Map<string, number>()),
+    [parcels, settings.showDuplicates],
+  );
 
   const { listRef, startDrag } = useDragReorder({
-    visibleTrackings: filtered.map((parcel) => parcel.tracking),
+    visibleTrackings: visibleParcels.map((parcel) => parcel.tracking),
     fullTrackings: parcels.map((parcel) => parcel.tracking),
     onReorder: (tracking, toIndex) => reorder(tracking, toIndex),
   });
+
+  // Card-tracking feature: after a tag change re-sorted the list, keep the
+  // edited card in view (v4 scrollParcelIntoViewAfterUpdate).
+  useEffect(() => {
+    if (trackedCard === null) return;
+    if (!settings.cardTrackingEnabled) {
+      setTrackedCard(null);
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      document
+        .getElementById(`parcel-card-${trackedCard}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTrackedCard(null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [trackedCard, settings.cardTrackingEnabled]);
+
+  /** Applies/clears the tag of one parcel (stale names elsewhere stay hidden). */
+  function handleTagPick(parcel: Parcel, tag: string | null) {
+    // `''` (not undefined) so the partial Firestore write really clears it.
+    updateParcel(parcel.tracking, { tag: tag ?? '' });
+    setTrackedCard(parcel.tracking);
+  }
 
   const closeFocus = useCallback(() => setFocusOpen(false), []);
   function findTracking(tracking: string) {
@@ -226,7 +291,7 @@ export default function HomePage() {
             </div>
           ) : (
             <ul ref={listRef} className="space-y-3">
-              {filtered.map((parcel) => (
+              {visibleParcels.map((parcel) => (
                 <li key={parcel.tracking} data-tracking={parcel.tracking}>
                   <SwipeableCard
                     onSwipeRight={() => swipeToCall(parcel)}
@@ -239,7 +304,19 @@ export default function HomePage() {
                       onOpenStatus={(p) => setModal({ kind: 'status', parcel: p })}
                       onEdit={(p) => setModal({ kind: 'edit', parcel: p })}
                       onDelete={(p) => setModal({ kind: 'delete', parcel: p })}
-                      onReorderStart={startDrag}
+                      // Manual reordering is meaningless while smart sorting owns the order.
+                      onReorderStart={settings.smartTagSortingEnabled ? undefined : startDrag}
+                      tagDef={
+                        parcel.tag !== undefined && parcel.tag !== ''
+                          ? activeTagByName.get(parcel.tag)
+                          : undefined
+                      }
+                      duplicateCount={duplicateCounts.get(parcel.tracking) ?? 0}
+                      tagPicker={
+                        settings.tagsEnabled
+                          ? { defs: activeTagDefs, onPick: (tag) => handleTagPick(parcel, tag) }
+                          : undefined
+                      }
                     />
                   </SwipeableCard>
                 </li>
@@ -300,6 +377,8 @@ export default function HomePage() {
           parcel={modal.parcel}
           settings={settings}
           statusLabel={statusLabel}
+          statusColor={statusColor}
+          statusIcon={statusIcon}
           onApply={changeStatus}
           onSmsSent={(tracking, target) =>
             updateParcel(tracking, target === 'sender' ? { senderSmsSent: true } : { smsSent: true })

@@ -1,10 +1,12 @@
 import type { Locale } from './keys';
 
 // Every file in ./locales is picked up automatically: adding a language = adding one file.
+// `*.settings.ts` are string fragments merged into their language file, not locales.
 const modules = import.meta.glob<{ default: Locale }>('./locales/*.ts', { eager: true });
 
-const locales: Locale[] = Object.values(modules)
-  .map((m) => m.default)
+const locales: Locale[] = Object.entries(modules)
+  .filter(([path]) => !path.endsWith('.settings.ts'))
+  .map(([, m]) => m.default)
   .sort((a, b) => a.meta.order - b.meta.order);
 
 const byCode = new Map(locales.map((l) => [l.meta.code, l]));

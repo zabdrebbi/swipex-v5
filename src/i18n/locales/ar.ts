@@ -1,4 +1,5 @@
 import type { LocaleMeta } from '../meta';
+import { settingsStrings } from './ar.settings';
 
 /** Arabic is the source of truth: its keys define `TranslationKey`. */
 const ar = {
@@ -11,6 +12,7 @@ const ar = {
     order: 1,
   } satisfies LocaleMeta,
   strings: {
+    ...settingsStrings,
     'nav.home': 'الرئيسية',
     'nav.tasks': 'المهام',
     'nav.archive': 'الأرشيف',

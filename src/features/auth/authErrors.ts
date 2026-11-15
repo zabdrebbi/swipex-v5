@@ -11,6 +11,10 @@ const MAP: Record<string, TranslationKey | null> = {
   'auth/network-request-failed': 'auth.error.network',
   'auth/popup-blocked': 'auth.error.popup_blocked',
   'auth/user-disabled': 'auth.error.user_disabled',
+  // Password change (step 11): no current-password field, so a recent login
+  // is required and Google-only accounts get a password linked instead.
+  'auth/requires-recent-login': 'auth.error.recent_login',
+  'auth/provider-already-linked': 'auth.error.password_already_set',
   // The user closed the popup on purpose: show nothing.
   'auth/popup-closed-by-user': null,
   'auth/cancelled-popup-request': null,

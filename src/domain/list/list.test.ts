@@ -5,10 +5,12 @@ import { computeDailySummary, sumAmount } from './dailySummary';
 import {
   EMPTY_FILTERS,
   TAG_NONE,
+  applySmartTagSorting,
   filterParcels,
   hasActiveFilters,
   matchesSearch,
   statusCounts,
+  trackingsWithTag,
   usedMunicipalities,
   usedTags,
   type FilterContext,
@@ -221,5 +223,49 @@ describe('sumAmount', () => {
     const parcels = [parcel({ amount: 1500 }), parcel({ amount: 0 }), parcel({ amount: 250.5 })];
     expect(sumAmount(parcels)).toBe(1750.5);
     expect(sumAmount([])).toBe(0);
+  });
+});
+
+describe('trackingsWithTag', () => {
+  it('returns only the trackings carrying the tag', () => {
+    const parcels = [
+      parcel({ tracking: 'A', tag: 'vip' }),
+      parcel({ tracking: 'B', tag: 'urgent' }),
+      parcel({ tracking: 'C', tag: 'vip' }),
+      parcel({ tracking: 'D' }),
+    ];
+    expect(trackingsWithTag(parcels, 'vip')).toEqual(['A', 'C']);
+  });
+
+  it('never matches the empty tag', () => {
+    expect(trackingsWithTag([parcel({ tracking: 'A', tag: undefined })], '')).toEqual([]);
+  });
+});
+
+describe('applySmartTagSorting', () => {
+  it('returns the list unchanged when no order is configured', () => {
+    const parcels = [parcel({ tracking: 'A' }), parcel({ tracking: 'B' })];
+    expect(applySmartTagSorting(parcels, [])).toEqual(parcels);
+    expect(applySmartTagSorting(parcels, [])).not.toBe(parcels);
+  });
+
+  it('groups by tag order and pushes untagged/unknown parcels to the end', () => {
+    const parcels = [
+      parcel({ tracking: 'none' }),
+      parcel({ tracking: 'second', tag: 'vip' }),
+      parcel({ tracking: 'first', tag: 'urgent' }),
+      parcel({ tracking: 'orphan', tag: 'deleted' }),
+    ];
+    const sorted = applySmartTagSorting(parcels, ['urgent', 'vip']);
+    expect(sorted.map((p) => p.tracking)).toEqual(['first', 'second', 'none', 'orphan']);
+  });
+
+  it('keeps the relative order of parcels sharing a rank (stable)', () => {
+    const parcels = [
+      parcel({ tracking: 'a1', tag: 'vip' }),
+      parcel({ tracking: 'a2', tag: 'vip' }),
+      parcel({ tracking: 'a3', tag: 'vip' }),
+    ];
+    expect(applySmartTagSorting(parcels, ['vip']).map((p) => p.tracking)).toEqual(['a1', 'a2', 'a3']);
   });
 });

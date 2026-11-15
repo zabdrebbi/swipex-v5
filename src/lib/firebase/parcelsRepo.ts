@@ -10,6 +10,7 @@ import { getFirebase } from './index';
 import { parcelsCollection } from '@/domain/firestore/paths';
 import { parcelFromDoc, parcelToDoc } from '@/domain/firestore/convertParcel';
 import type { Parcel } from '@/domain/parcel/types';
+import type { StatusRef } from '@/domain/status/types';
 
 /** Creates a full document (add) or overwrites one (edit of an existing tracking). */
 export async function upsertParcel(uid: string, parcel: Parcel): Promise<void> {
@@ -38,6 +39,34 @@ export async function deleteParcels(uid: string, trackings: string[]): Promise<v
     batch.delete(doc(db, parcelsCollection(uid), tracking));
   }
   await batch.commit();
+}
+
+/** Firestore caps a batch at 500 operations; one parcel costs exactly one. */
+const MAX_STATUS_RESETS_PER_BATCH = 400;
+
+/**
+ * Atomic status reset for many parcels at once (used when a custom status is
+ * deleted): only `status`/timestamps are written, one batch per chunk.
+ */
+export async function resetParcelsStatus(
+  uid: string,
+  trackings: string[],
+  status: StatusRef,
+): Promise<void> {
+  if (trackings.length === 0) return;
+  const { db } = getFirebase();
+  const now = new Date().toISOString();
+  for (let start = 0; start < trackings.length; start += MAX_STATUS_RESETS_PER_BATCH) {
+    const batch = writeBatch(db);
+    for (const tracking of trackings.slice(start, start + MAX_STATUS_RESETS_PER_BATCH)) {
+      batch.set(
+        doc(db, parcelsCollection(uid), tracking),
+        { status, statusUpdatedAt: now, updatedAt: now },
+        { merge: true },
+      );
+    }
+    await batch.commit();
+  }
 }
 
 /** Atomic reorder: only documents whose sortOrder actually changed are written. */

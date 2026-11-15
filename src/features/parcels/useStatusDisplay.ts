@@ -10,6 +10,8 @@ export interface StatusDisplay {
   statusLabel: (ref: StatusRef) => string;
   /** Built-in -> palette colour; custom -> the stored colour. */
   statusColor: (ref: StatusRef) => string;
+  /** Stored lucide icon name (built-in defaults and custom statuses). */
+  statusIcon: (ref: StatusRef) => string;
 }
 
 /**
@@ -36,6 +38,11 @@ export function useStatusDisplay(): StatusDisplay {
       }
       return getBuiltInStatus(parsed.kind === 'built-in' ? parsed.key : '')?.color ?? '#9ca3af';
     };
-    return { statusLabel, statusColor };
+    const statusIcon = (ref: StatusRef): string => {
+      const parsed = parseStatusRef(ref);
+      if (parsed.kind === 'custom') return customById.get(parsed.id)?.icon ?? 'Tag';
+      return getBuiltInStatus(parsed.key)?.icon ?? 'Clock';
+    };
+    return { statusLabel, statusColor, statusIcon };
   }, [t, lang, settings.customStatuses]);
 }
